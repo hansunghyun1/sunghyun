@@ -1,74 +1,41 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import control
+from scipy import signal
 
-# 전달함수 G(s) 정의
-num = [100] # 분자 계수
-den = [1, 5, 6] # 분모 계수: s^2 + 5s + 6
-G = control.TransferFunction(num, den)
+# 전달함수 정의
+s1 = signal.lti([100], [1, 5, 106])
 
-# 폐루프 전달함수 T(s) 계산
-H = 1  # 피드백 루프의 전달함수 (1이면 피드백이 없는 상태)
-T = control.series(G, H)
-T = control.minreal(T)  # 최소 실수화
+# 주파수 범위 설정
+frequencies = np.logspace(-2, 2, 500)
 
-# 출력 값 출력
-st.write('전달함수:')
-st.latex(r"\frac{100}{{(s+2)(s+3)+100}}")
-
-# 시간 벡터 생성
-t = np.linspace(0, 10, 1000)
-
-# Unit step 입력 생성
-u = np.ones_like(t)
-
-# 시스템 응답 계산
-t, y = control.step_response(T, T=t, input=u)
-
-# 응답곡선 그리기
-fig1, ax1 = plt.subplots()
-ax1.plot(t, y)
-ax1.set_xlabel('Time')
-ax1.set_ylabel('Output')
-ax1.set_title('Step Response')
-ax1.grid(True)
+# 전달함수 그래프 계산
+t, y = signal.step(s1)
 
 # 주파수 응답 계산
-omega, mag, phase = control.bode(T)
+w, mag, phase = s1.bode(frequencies)
 
-# 보드선도 그리기
-fig2, (ax2, ax3) = plt.subplots(2, 1)
-ax2.semilogx(omega, mag)  # 주파수 응답의 크기
-ax2.set_xlabel('Frequency')
-ax2.set_ylabel('Magnitude (dB)')
-ax2.set_title('Bode Plot - Magnitude')
-ax2.grid(True)
+# Streamlit 앱 구성
+st.title('202021031 한성현')
+st.subheader('<폐루프 전달함수>')
+st.write('L(s) = 100/(s^2 + 5s + 106)')
 
-ax3.semilogx(omega, phase)  # 주파수 응답의 위상
-ax3.set_xlabel('Frequency')
-ax3.set_ylabel('Phase (degrees)')
-ax3.set_title('Bode Plot - Phase')
-ax3.grid(True)
-
-# 그래프를 Streamlit 앱에 출력
-st.write('Step Response:')
-st.pyplot(fig1)
-
-st.write('Bode Plot:')
-st.pyplot(fig2)
-
-# 시스템 응답 계산
-t, y = control.step_response(T, T=t, input=u)
-
-# 응답곡선 그리기
+# 전달함수 그래프
+st.header("Transfer Function Response")
 fig1, ax1 = plt.subplots()
+t, y, _ = signal.lsim(s1, np.ones_like(t), t)
 ax1.plot(t, y)
 ax1.set_xlabel('Time')
 ax1.set_ylabel('Output')
-ax1.set_title('Step Response')
-ax1.grid(True)
-
-# 그래프를 Streamlit 앱에 출력
-st.write('Step Response:')
 st.pyplot(fig1)
+
+# Bode Plot
+st.header("Bode Plot")
+fig2, (ax2_mag, ax2_phase) = plt.subplots(2, 1)
+ax2_mag.semilogx(w, mag)
+ax2_mag.set_ylabel('Magnitude [dB]')
+ax2_mag.set_title('Bode plot of G(s) = 100 / (s^2 + 5s + 106)')
+ax2_phase.semilogx(w, phase)
+ax2_phase.set_xlabel('Frequency [rad/s]')
+ax2_phase.set_ylabel('Phase [degrees]')
+st.pyplot(fig2)
